@@ -1,0 +1,220 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8 Rooks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ddd3d3; /* Optional: Set a light background for the body */
+        }
+
+        .title {
+            text-align: center;
+            margin: 40px 0;
+            color: rgb(0, 0, 0);
+        }
+
+        .board-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            position: relative; /* Added position for absolute child */
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 1px;
+            cursor: pointer;
+            position: relative;
+            border: 5px solid black; /* Added black border */
+            background-image: url('{% static "rook.png" %}'); /* Rook image as background */
+            background-size: 500%; /* Cover the entire board */
+            background-position: center; /* Center the image */
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .attacked {
+            background-color: rgba(255, 0, 0, 0.5); /* Semi-transparent red for attacked cells */
+        }
+
+        .rook {
+            background-size: 80% 80%;
+            background-repeat: no-repeat;
+        }
+
+        .reset-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .reset-button:hover {
+            background-color: #c8bff8;
+        }
+
+        .success-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 50px;
+            color: rgb(170, 255, 196);
+            border: #000000;
+            border-radius: 5%;
+            display: none;
+            font-weight: bold;
+            width: 400px;
+            text-align: center;
+            text-transform: uppercase;
+            background-color: transparent;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">8 Rooks Puzzle</h1>
+
+    <div class="board-container">
+        <div class="error-message" id="errorMessage">Cannot place rook here!</div>
+        <div class="board" id="chessBoard">
+            <div class="success-message" id="successMessage">Success</div>
+        </div>
+        <button class="reset-button" id="resetButton">Reset Board</button>
+    </div>
+
+    <script>
+        const rookImageUrl = "{% static 'rook.png' %}"; // Assuming you have a rook image
+        const maxRooks = 8;
+        let rookCount = 0;
+        const placedRooks = [];
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        const board = document.getElementById('chessBoard');
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.setAttribute('data-index', i);
+            cell.addEventListener('click', () => placeRook(cell));
+
+            // Set the background color to alternate white and black
+            const row = Math.floor(i / 8);
+            const col = i % 8;
+            if ((row + col) % 2 === 0) {
+                cell.style.backgroundColor = '#ffffff'; // White
+            } else {
+                cell.style.backgroundColor = '#000000'; // Black
+            }
+
+            board.appendChild(cell);
+        }
+
+        function placeRook(cell) {
+            const cellIndex = cell.getAttribute('data-index');
+            const row = Math.floor(cellIndex / 8);
+            const col = cellIndex % 8;
+
+            if (cell.classList.contains('rook')) {
+                cell.classList.remove('rook');
+                cell.style.backgroundImage = '';
+                rookCount--;
+                placedRooks.splice(placedRooks.indexOf(`${row},${col}`), 1);
+                clearAttacks();
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+            } else if (rookCount < maxRooks && canPlaceRook(row, col)) {
+                cell.classList.add('rook');
+                cell.style.backgroundImage = `url('${rookImageUrl}')`;
+                rookCount++;
+                placedRooks.push(`${row},${col}`);
+                errorMessage.style.display = 'none';
+            } else {
+                errorMessage.style.display = 'block';
+                setTimeout(() => { errorMessage.style.display = 'none'; }, 2000);
+            }
+
+            checkConflicts();
+
+            if (rookCount === maxRooks) {
+                successMessage.style.display = 'block';
+            }
+        }
+
+        function canPlaceRook(row, col) {
+            return !placedRooks.some(pos => {
+                const [r, c] = pos.split(',').map(Number);
+                return r === row || c === col;
+            });
+        }
+
+        function checkConflicts() {
+            const attackedCells = new Set();
+
+            placedRooks.forEach(pos => {
+                const [row, col] = pos.split(',').map(Number);
+
+                for (let i = 0; i < 8; i++) {
+                    attackedCells.add(row * 8 + i);
+                    attackedCells.add(i * 8 + col);
+                }
+            });
+
+            clearAttacks();
+            attackedCells.forEach(index => {
+                board.children[index].classList.add('attacked');
+            });
+        }
+
+        function clearAttacks() {
+            const attackedCells = document.querySelectorAll('.attacked');
+            attackedCells.forEach(cell => {
+                cell.classList.remove('attacked');
+            });
+        }
+
+        function resetBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('rook');
+                cell.style.backgroundImage = '';
+            });
+            rookCount = 0;
+            placedRooks.length = 0;
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            clearAttacks();
+        }
+
+        document.getElementById('resetButton').addEventListener('click', resetBoard);
+    </script>
+</body>
+</html>
