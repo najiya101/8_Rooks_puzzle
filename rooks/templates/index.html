@@ -10,7 +10,10 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #ddd3d3; /* Optional: Set a light background for the body */
+            background-color: #ddd3d3;
+            background-image: url('{% static "rook.png" %}');
+            background-size: 50%;
+            /*background-position: left;*/
         }
 
         .title {
@@ -35,7 +38,7 @@
             cursor: pointer;
             position: relative;
             border: 5px solid black; /* Added black border */
-            background-image: url('{% static "rook.png" %}'); /* Rook image as background */
+         
             background-size: 500%; /* Cover the entire board */
             background-position: center; /* Center the image */
         }
